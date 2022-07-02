@@ -41,12 +41,8 @@ class Net(nn.Module):
 
 def init_distributed(args):
     if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
-      args.rank = int(os.environ["RANK"])
       args.world_size = int(os.environ['WORLD_SIZE'])
       args.gpu = int(os.environ['LOCAL_RANK'])
-    elif 'SLURM_PROCID' in os.environ:
-        args.rank = int(os.environ['SLURM_PROCID'])
-        args.gpu = args.rank % torch.cuda.device_count()
     else:
         print('Not using distributed mode')
         args.gpu = 0
@@ -58,7 +54,7 @@ def init_distributed(args):
 
     os.environ['MASTER_ADDR']= '127.0.0.1'
     os.environ['MASTER_PORT']= '29500'
-    dist.init_process_group(backend='nccl',rank=args.rank,world_size=args.world_size)
+    dist.init_process_group(backend='nccl', world_size=args.world_size)
     dist.barrier()
 
 def main(args):
@@ -83,7 +79,7 @@ def main(args):
             'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 
-    net = Net()
+    net = Net().to(args.gpu)
     net = torch.nn.parallel.DistributedDataParallel(net, device_ids=[args.gpu])
 
     criterion = nn.CrossEntropyLoss()
@@ -98,6 +94,8 @@ def main(args):
         for i, data in enumerate(trainloader, 0):
             # get the inputs; data is a list of [inputs, labels]
             inputs, labels = data
+            inputs = inputs.to(args.gpu)
+            labels = labels.to(args.gpu)
 
             # zero the parameter gradients
             optimizer.zero_grad()
