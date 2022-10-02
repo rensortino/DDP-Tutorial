@@ -130,7 +130,7 @@ def main(args):
             outputs = net(images)
             # the class with the highest energy is what we choose as prediction
             _, predicted = torch.max(outputs.data, 1)
-            accuracy.update()
+            accuracy.update(predicted, labels)
 
     print('Accuracy of the network on the 10000 test images: %d %%' % (
         100 * accuracy.compute()))
